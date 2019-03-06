@@ -11,7 +11,7 @@ def sendHello():
 def cameraGen(camera):
     while True:
         img = camera.getFrame()
-        img = img.toBytes()
+        # img = img.toBytes()
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + img + b'\r\n')
 
