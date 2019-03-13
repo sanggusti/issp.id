@@ -1,10 +1,7 @@
-from basecamera import BaseCamera
-import cv2
 import tensorflow as tf
-import os
-from object_detection.utils import visualization_utils, label_map_util, ops
 import numpy as np
-
+from object_detection.utils import visualization_utils, label_map_util, ops
+import os
 
 class ObjectDetector(object):
     def __init__(self,model_name):
@@ -19,7 +16,11 @@ class ObjectDetector(object):
         if self.session is not None:
             self.session.close()
 
-    def run_inference_for_single_image(self,image,session):
+    def run_inference_for_single_image(self,image):
+        if self.session is None:
+            with self.graph.as_default():
+                self.session = tf.Session()
+        # Get handles to input and output tensors
         ops = tf.get_default_graph().get_operations()
         all_tensor_names = {output.name for op in ops for output in op.outputs}
         tensor_dict = {}
@@ -49,7 +50,7 @@ class ObjectDetector(object):
         image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0')
 
         # Run inference
-        output_dict = session.run(tensor_dict,
+        output_dict = self.session.run(tensor_dict,
                                 feed_dict={image_tensor: np.expand_dims(image, 0)})
 
         # all outputs are float32 numpy arrays, so convert types as appropriate
@@ -87,19 +88,3 @@ class ObjectDetector(object):
 
     
 detector = ObjectDetector("facedetector")
-
-class Camera(BaseCamera):
-    def __init__(self):
-        # self.detector = ObjectDetector("facedetector")
-        return super().__init__()
-    @staticmethod
-    def frames():
-        cap = cv2.VideoCapture(0)
-        if not cap.isOpened():
-            raise RuntimeError('Camera not found')
-        with detector.graph.as_default():
-                with tf.Session() as session:
-                    while True:
-                        _, img = cap.read()
-                        dict_, img = detector.run_inference_for_single_image(img,session)
-                        yield cv2.imencode('.jpg',img)[1].tobytes()
